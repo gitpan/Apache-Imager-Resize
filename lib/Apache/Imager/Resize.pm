@@ -11,7 +11,7 @@ use Apache::ModuleConfig ();
 use DynaLoader ();
 
 use vars qw($VERSION);
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 if($ENV{MOD_PERL}) {
 	no strict;
@@ -21,7 +21,7 @@ if($ENV{MOD_PERL}) {
 
 =head1 NAME
 
-Apache::Imager::Images - Fixup handler that resizes and crops images on the fly, caching the results
+Apache::Imager::Resize - Fixup handler that resizes and crops images on the fly, caching the results, and doesn't require ImageMagick.
 
 =head1 SYNOPSIS
 
@@ -45,31 +45,31 @@ Apache::Imager::Images - Fixup handler that resizes and crops images on the fly,
 
 =head1 INTRODUCTION
 
-This is a simple, sturdy fixup class that only does one job: it resizes images before they're delivered. All you have to do is append either a width or a height parameter (or both) to and image file address, and AIR will make sure that an appropriately shrunken image file is returned. It caches the results of each operation, so the first request might take a little while but subsequent similar requests should be very quick.
+This is a simple fixup class that only does one job: it resizes images before they're delivered. All you have to do is append either a width and/or a height parameter to any image file address, and AIR will make sure that an appropriately shrunken image file is returned. It caches the results of each operation, so the first request might take a little while but subsequent similar requests should be very quick.
 
-There are other modules that you could do this with - if your requirements might include more complicated transformations, or you're running mod_perl behind a thin proxy, you're probably better off with L<Apache::ImageMagick> - but if your only requirement is to be able to show images at an arbitrary size, this module will be much easier to use.
+There are other modules that you could do this with: see the links at the bottom of this pod. If your requirements might include more complicated transformations, or you're running mod_perl behind a thin proxy, you're probably better off with L<Apache::ImageMagick>. There are also several solutions for thumbnailing, but if your only requirement is to be able to show images at an arbitrary size in a simple, clean way, this module might be for you.
 
-The handler uses Imager to do the work. I mean to produce a proper general-purpose Apache::Imager package, if nobody else does, so this should end up as a special case with a convenient interface, probably alongside Apache::Imager::Translate and other useful shortcuts.
+The handler uses Imager to do the work. I intend to produce a proper general-purpose Apache::Imager package, if nobody else does, so this will end up being a special case with a simplified interface, and will probably live alongside an Apache::Imager::Translate and other useful shortcut modules.
 
 =head1 PARAMETERS
 
-Apache::Imager::Resize understands four image parameters:
+Apache::Imager::Resize understands four query string parameters:
 
 =head2 w
 
-width in pixels. By default we look for a 'w' parameter: you can override this with an ImgResizeWidthParam directive.
+width in pixels. You can specify another name with an ImgResizeWidthParam directive.
 
 =head2 h
 
-height in pixels. By default we look for an 'h' parameter: you can override this with an ImgResizeHeightParam directive.
+height in pixels. BYou can specify another name with an ImgResizeHeightParam directive.
 
 =head2 reshape
 
-If this is 'crop', we will crop without resizing. The default behaviour is to scale first and then crop to fit the other dimension (see below). If only one dimension is specified, this parameter has no effect.
+If this is 'crop', we will crop without resizing. The default behaviour is to scale first and then crop to fit the other dimension (see below). If only one dimension is specified, this parameter has no effect. There will be more options here in later versions.
 
 =head2 cropto
 
-This can be left, right, top or bottom, and it dictates the part of the picture that is kept when we crop the image. If only one dimension is specified, this parameter has no effect.
+This can be left, right, top or bottom, and it dictates the part of the picture that is kept when we crop the image. If only one dimension is specified, this parameter has no effect. Future versions will allow combinations of these values.
 
 =head2 quality
 
@@ -153,7 +153,6 @@ If neither width nor height is specified we bail out immediately, so the origina
 There is currently no mechanism for cache cleanup, but we do touch the access date of each file each time it's used (leaving the modification date alone so that it can be to compare with the original file). You could fairly easily set up a cron job to go through your cache directory deleting all the image files that have not been touched for a week or so.
 
 =cut
-
 
 sub handler {
 	my $r = shift;
@@ -393,18 +392,31 @@ sub ImgResizeNoCache ($$$) {
 	$cfg->{ImgResizeNoCache} = $flag;
 }
 
+=head1 BUGS
+
+No doubt. Reports in rt.cpan.org would be much appreciated.
+
 =head1 TODO
 
 =over
+
 =item * Allow absolute image cache path
+
 =item * Greater compatibility with Apache::ImageMagick cache, so that we can use their proxy module to avoid fat-server calls
-=item * Apache::Imager
+
+=item * Accept more than one cropto parameter, eg top and left.
+
+=item * More reshape parameters, such as stretch (instead of cropping)
+
+=item * the rest of Apache::Imager
+
 =item * tests
+
 =back
 
 =head1 SEE ALSO
 
-L<Imager> L<Apache>
+L<Imager> L<Apache> L<Apache::ImageMagick> L<Apache::ImageShoehorn> L<Apache::GD::Thumbnail >
 
 =head1 AUTHOR
 
